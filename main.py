@@ -8,8 +8,6 @@ MAX_CELL_SIZE = 50
 GRID_WIDTH = 800
 GRID_HEIGHT = 600
 MINI_MAP_SCALE = 0.1  # Scale down to 10% of the original size
-MINI_MAP_WIDTH = int(GRID_WIDTH * MINI_MAP_SCALE)
-MINI_MAP_HEIGHT = int(GRID_HEIGHT * MINI_MAP_SCALE)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
@@ -73,8 +71,14 @@ def resize_grid(old_grid, old_cell_size, new_cell_size):
 
     return new_grid
 
+def update_mini_map_dimensions():
+    global MINI_MAP_WIDTH, MINI_MAP_HEIGHT
+    MINI_MAP_WIDTH = int(GRID_WIDTH * MINI_MAP_SCALE)
+    MINI_MAP_HEIGHT = int(GRID_HEIGHT * MINI_MAP_SCALE)
+
 rows, cols = calculate_grid_dimensions()
 grid = create_grid(rows, cols)
+update_mini_map_dimensions()
 
 class Button:
     def __init__(self, text, x, y, width, height, color, text_color):
@@ -198,8 +202,22 @@ def main():
                     left_mouse_held = False
                 elif event.button == 3:  # Right mouse button released
                     right_mouse_held = False
-
-            # Handle the slider event
+            elif event.type == pygame.MOUSEWHEEL:
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]:
+                    # Zoom in or out with scroll wheel
+                    if event.y > 0:
+                        new_cell_size = min(MAX_CELL_SIZE, CELL_SIZE + 1)  # Zoom in
+                    else:
+                        new_cell_size = max(MIN_CELL_SIZE, CELL_SIZE - 1)  # Zoom out
+                    
+                    if new_cell_size != CELL_SIZE:
+                        grid = resize_grid(grid, CELL_SIZE, new_cell_size)
+                        CELL_SIZE = new_cell_size
+                        rows, cols = calculate_grid_dimensions()
+                        update_mini_map_dimensions()
+            
+            # Ensure the slider handles its own events correctly
             speed_slider.handle_event(event)
 
         if left_mouse_held and not game_started:
