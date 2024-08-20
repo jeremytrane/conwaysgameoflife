@@ -14,6 +14,36 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 GRAY = (200, 200, 200)
 
+# Slider class to adjust speed
+class Slider:
+    def __init__(self, x, y, width, min_val, max_val, start_val, color):
+        self.rect = pygame.Rect(x, y, width, 20)
+        self.min_val = min_val
+        self.max_val = max_val
+        self.val = start_val
+        self.color = color
+        self.handle_rect = pygame.Rect(x + (start_val - min_val) / (max_val - min_val) * width - 5, y - 5, 10, 30)
+        self.dragging = False
+
+    def draw(self, screen):
+        pygame.draw.rect(screen, self.color, self.rect, 2)
+        pygame.draw.rect(screen, self.color, self.handle_rect)
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.handle_rect.collidepoint(event.pos):
+                self.dragging = True
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self.dragging = False
+        elif event.type == pygame.MOUSEMOTION:
+            if self.dragging:
+                new_x = max(self.rect.x, min(event.pos[0], self.rect.x + self.rect.width))
+                self.handle_rect.x = new_x - 5
+                self.val = self.min_val + (self.handle_rect.x - self.rect.x) / self.rect.width * (self.max_val - self.min_val)
+
+    def get_value(self):
+        return self.val
+
 def create_grid(rows, cols):
     return np.zeros((rows, cols), dtype=int)
 
@@ -102,13 +132,16 @@ def main():
     global CELL_SIZE, rows, cols, grid
 
     pygame.init()
-    screen = pygame.display.set_mode((GRID_WIDTH, GRID_HEIGHT + 50))
+    screen = pygame.display.set_mode((GRID_WIDTH, GRID_HEIGHT + 100))
     pygame.display.set_caption('Conway\'s Game of Life')
     clock = pygame.time.Clock()
 
     start_button = Button("Start", 10, GRID_HEIGHT + 10, 100, 30, GREEN, WHITE)
     pause_button = Button("Pause", 120, GRID_HEIGHT + 10, 100, 30, BLUE, WHITE)
     stop_button = Button("Stop", 230, GRID_HEIGHT + 10, 100, 30, RED, WHITE)
+    
+    # Slider for speed adjustment
+    speed_slider = Slider(350, GRID_HEIGHT + 10, 200, 1, 30, 10, BLACK)
     
     running = True
     game_started = False
@@ -150,19 +183,9 @@ def main():
                     left_mouse_held = False
                 elif event.button == 3:  # Right mouse button released
                     right_mouse_held = False
-            elif event.type == pygame.MOUSEWHEEL:
-                keys = pygame.key.get_pressed()
-                if keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]:
-                    # Zoom in or out with scroll wheel
-                    if event.y > 0:
-                        new_cell_size = min(MAX_CELL_SIZE, CELL_SIZE + 1)  # Zoom in
-                    else:
-                        new_cell_size = max(MIN_CELL_SIZE, CELL_SIZE - 1)  # Zoom out
-                    
-                    if new_cell_size != CELL_SIZE:
-                        grid = resize_grid(grid, CELL_SIZE, new_cell_size)
-                        CELL_SIZE = new_cell_size
-                        rows, cols = calculate_grid_dimensions()
+
+            # Handle the slider event
+            speed_slider.handle_event(event)
 
         if left_mouse_held and not game_started:
             interpolate_cells(grid, last_mouse_pos, mouse_pos, 1)  # Draw cells
@@ -181,14 +204,15 @@ def main():
         start_button.draw(screen)
         pause_button.draw(screen)
         stop_button.draw(screen)
+        speed_slider.draw(screen)
 
         # Display the iteration count
         font = pygame.font.Font(None, 36)
         iteration_text = font.render(f"Iterations: {iteration_count}", True, BLACK)
-        screen.blit(iteration_text, (350, GRID_HEIGHT + 10))
+        screen.blit(iteration_text, (600, GRID_HEIGHT + 10))
 
         pygame.display.flip()
-        clock.tick(60)  # Increased to 60 frames per second for smoother drawing
+        clock.tick(speed_slider.get_value())  # Use the slider value to adjust the speed
 
     pygame.quit()
 
