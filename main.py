@@ -83,18 +83,19 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if start_button.is_clicked(event.pos):
-                    game_started = True
-                    game_paused = False
-                elif pause_button.is_clicked(event.pos) and game_started:
-                    game_paused = not game_paused
-                elif stop_button.is_clicked(event.pos):
-                    game_started = False
-                    game_paused = False
-                    iteration_count = 0
-                    grid = np.zeros((rows, cols), dtype=int)
-                elif not game_started:
-                    toggle_cell(grid, pygame.mouse.get_pos())
+                if event.button == 1:  # Check if the left mouse button was clicked
+                    if start_button.is_clicked(event.pos):
+                        game_started = True
+                        game_paused = False
+                    elif pause_button.is_clicked(event.pos) and game_started:
+                        game_paused = not game_paused
+                    elif stop_button.is_clicked(event.pos):
+                        game_started = False
+                        game_paused = False
+                        iteration_count = 0
+                        grid = np.zeros((rows, cols), dtype=int)
+                    elif not game_started:
+                        toggle_cell(grid, pygame.mouse.get_pos())
 
         if game_started and not game_paused:
             grid = update_grid(grid)
