@@ -3,6 +3,8 @@ import numpy as np
 
 # Set up the constants
 CELL_SIZE = 10
+MIN_CELL_SIZE = 5
+MAX_CELL_SIZE = 50
 GRID_WIDTH = 800
 GRID_HEIGHT = 600
 WHITE = (255, 255, 255)
@@ -12,14 +14,35 @@ RED = (255, 0, 0)
 BLUE = (0, 0, 255)
 GRAY = (200, 200, 200)
 
-# Calculate the number of cells in the grid
-cols = GRID_WIDTH // CELL_SIZE
-rows = GRID_HEIGHT // CELL_SIZE
+def create_grid(rows, cols):
+    return np.zeros((rows, cols), dtype=int)
 
-# Initialize the grid with all dead cells
-grid = np.zeros((rows, cols), dtype=int)
+def calculate_grid_dimensions():
+    cols = GRID_WIDTH // CELL_SIZE
+    rows = GRID_HEIGHT // CELL_SIZE
+    return rows, cols
 
-# Button class to handle drawing and interaction
+def resize_grid(old_grid, old_cell_size, new_cell_size):
+    old_rows, old_cols = old_grid.shape
+    new_rows = GRID_HEIGHT // new_cell_size
+    new_cols = GRID_WIDTH // new_cell_size
+    new_grid = np.zeros((new_rows, new_cols), dtype=int)
+
+    scale_factor = new_cell_size / old_cell_size
+
+    for row in range(old_rows):
+        for col in range(old_cols):
+            if old_grid[row, col] == 1:
+                new_row = int(row * scale_factor)
+                new_col = int(col * scale_factor)
+                if new_row < new_rows and new_col < new_cols:
+                    new_grid[new_row, new_col] = 1
+
+    return new_grid
+
+rows, cols = calculate_grid_dimensions()
+grid = create_grid(rows, cols)
+
 class Button:
     def __init__(self, text, x, y, width, height, color, text_color):
         self.text = text
@@ -76,6 +99,8 @@ def interpolate_cells(grid, start_pos, end_pos, state):
             modify_cell(grid, (x * CELL_SIZE, y * CELL_SIZE), state)
 
 def main():
+    global CELL_SIZE, rows, cols, grid
+
     pygame.init()
     screen = pygame.display.set_mode((GRID_WIDTH, GRID_HEIGHT + 50))
     pygame.display.set_caption('Conway\'s Game of Life')
@@ -92,7 +117,6 @@ def main():
     right_mouse_held = False
     last_mouse_pos = None
     iteration_count = 0
-    global grid
 
     while running:
         mouse_pos = pygame.mouse.get_pos()
@@ -113,7 +137,7 @@ def main():
                         game_started = False
                         game_paused = False
                         iteration_count = 0
-                        grid = np.zeros((rows, cols), dtype=int)
+                        grid = create_grid(rows, cols)
                     elif not game_started:
                         modify_cell(grid, mouse_pos, 1)  # Draw cell
                 elif event.button == 3:  # Right mouse button pressed
@@ -126,6 +150,19 @@ def main():
                     left_mouse_held = False
                 elif event.button == 3:  # Right mouse button released
                     right_mouse_held = False
+            elif event.type == pygame.MOUSEWHEEL:
+                keys = pygame.key.get_pressed()
+                if keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]:
+                    # Zoom in or out with scroll wheel
+                    if event.y > 0:
+                        new_cell_size = min(MAX_CELL_SIZE, CELL_SIZE + 1)  # Zoom in
+                    else:
+                        new_cell_size = max(MIN_CELL_SIZE, CELL_SIZE - 1)  # Zoom out
+                    
+                    if new_cell_size != CELL_SIZE:
+                        grid = resize_grid(grid, CELL_SIZE, new_cell_size)
+                        CELL_SIZE = new_cell_size
+                        rows, cols = calculate_grid_dimensions()
 
         if left_mouse_held and not game_started:
             interpolate_cells(grid, last_mouse_pos, mouse_pos, 1)  # Draw cells
