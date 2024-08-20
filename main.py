@@ -57,10 +57,10 @@ def draw_grid(screen, grid):
             pygame.draw.rect(screen, color, (col*CELL_SIZE, row*CELL_SIZE, CELL_SIZE, CELL_SIZE))
             pygame.draw.rect(screen, GRAY, (col*CELL_SIZE, row*CELL_SIZE, CELL_SIZE, CELL_SIZE), 1)  # Draw grid lines
 
-def toggle_cell(grid, pos):
+def modify_cell(grid, pos, state):
     col = pos[0] // CELL_SIZE
     row = pos[1] // CELL_SIZE
-    grid[row, col] = 1 - grid[row, col]
+    grid[row, col] = state
 
 def main():
     pygame.init()
@@ -75,6 +75,8 @@ def main():
     running = True
     game_started = False
     game_paused = False
+    left_mouse_held = False
+    right_mouse_held = False
     iteration_count = 0
     global grid
 
@@ -83,7 +85,8 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:  # Check if the left mouse button was clicked
+                if event.button == 1:  # Left mouse button pressed
+                    left_mouse_held = True
                     if start_button.is_clicked(event.pos):
                         game_started = True
                         game_paused = False
@@ -95,7 +98,22 @@ def main():
                         iteration_count = 0
                         grid = np.zeros((rows, cols), dtype=int)
                     elif not game_started:
-                        toggle_cell(grid, pygame.mouse.get_pos())
+                        modify_cell(grid, pygame.mouse.get_pos(), 1)  # Draw cell
+                elif event.button == 3:  # Right mouse button pressed
+                    right_mouse_held = True
+                    if not game_started:
+                        modify_cell(grid, pygame.mouse.get_pos(), 0)  # Erase cell
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:  # Left mouse button released
+                    left_mouse_held = False
+                elif event.button == 3:  # Right mouse button released
+                    right_mouse_held = False
+
+        if left_mouse_held and not game_started:
+            modify_cell(grid, pygame.mouse.get_pos(), 1)  # Draw cell
+
+        if right_mouse_held and not game_started:
+            modify_cell(grid, pygame.mouse.get_pos(), 0)  # Erase cell
 
         if game_started and not game_paused:
             grid = update_grid(grid)
