@@ -22,5 +22,6 @@ python main.py
 
 ## Screenshots
 
-![App Screenshot](https://via.placeholder.com/468x300?text=App+Screenshot+Here)
+![image](https://github.com/user-attachments/assets/91f38554-8baa-46f5-a21c-701e8b2aead8)
+
 
