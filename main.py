@@ -60,7 +60,20 @@ def draw_grid(screen, grid):
 def modify_cell(grid, pos, state):
     col = pos[0] // CELL_SIZE
     row = pos[1] // CELL_SIZE
-    grid[row, col] = state
+    if 0 <= row < rows and 0 <= col < cols:  # Ensure we're within the grid boundaries
+        grid[row, col] = state
+
+def interpolate_cells(grid, start_pos, end_pos, state):
+    x1, y1 = start_pos[0] // CELL_SIZE, start_pos[1] // CELL_SIZE
+    x2, y2 = end_pos[0] // CELL_SIZE, end_pos[1] // CELL_SIZE
+    if x1 == x2 and y1 == y2:
+        modify_cell(grid, end_pos, state)
+    else:
+        steps = max(abs(x2 - x1), abs(y2 - y1))
+        for i in range(steps + 1):
+            x = x1 + (x2 - x1) * i // steps
+            y = y1 + (y2 - y1) * i // steps
+            modify_cell(grid, (x * CELL_SIZE, y * CELL_SIZE), state)
 
 def main():
     pygame.init()
@@ -77,16 +90,20 @@ def main():
     game_paused = False
     left_mouse_held = False
     right_mouse_held = False
+    last_mouse_pos = None
     iteration_count = 0
     global grid
 
     while running:
+        mouse_pos = pygame.mouse.get_pos()
+        
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left mouse button pressed
                     left_mouse_held = True
+                    last_mouse_pos = mouse_pos
                     if start_button.is_clicked(event.pos):
                         game_started = True
                         game_paused = False
@@ -98,11 +115,12 @@ def main():
                         iteration_count = 0
                         grid = np.zeros((rows, cols), dtype=int)
                     elif not game_started:
-                        modify_cell(grid, pygame.mouse.get_pos(), 1)  # Draw cell
+                        modify_cell(grid, mouse_pos, 1)  # Draw cell
                 elif event.button == 3:  # Right mouse button pressed
                     right_mouse_held = True
+                    last_mouse_pos = mouse_pos
                     if not game_started:
-                        modify_cell(grid, pygame.mouse.get_pos(), 0)  # Erase cell
+                        modify_cell(grid, mouse_pos, 0)  # Erase cell
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:  # Left mouse button released
                     left_mouse_held = False
@@ -110,10 +128,12 @@ def main():
                     right_mouse_held = False
 
         if left_mouse_held and not game_started:
-            modify_cell(grid, pygame.mouse.get_pos(), 1)  # Draw cell
+            interpolate_cells(grid, last_mouse_pos, mouse_pos, 1)  # Draw cells
+            last_mouse_pos = mouse_pos
 
         if right_mouse_held and not game_started:
-            modify_cell(grid, pygame.mouse.get_pos(), 0)  # Erase cell
+            interpolate_cells(grid, last_mouse_pos, mouse_pos, 0)  # Erase cells
+            last_mouse_pos = mouse_pos
 
         if game_started and not game_paused:
             grid = update_grid(grid)
@@ -131,7 +151,7 @@ def main():
         screen.blit(iteration_text, (350, GRID_HEIGHT + 10))
 
         pygame.display.flip()
-        clock.tick(10)  # 10 frames per second
+        clock.tick(60)  # Increased to 60 frames per second for smoother drawing
 
     pygame.quit()
 
