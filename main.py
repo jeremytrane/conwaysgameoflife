@@ -7,6 +7,9 @@ MIN_CELL_SIZE = 5
 MAX_CELL_SIZE = 50
 GRID_WIDTH = 800
 GRID_HEIGHT = 600
+MINI_MAP_SCALE = 0.1  # Scale down to 10% of the original size
+MINI_MAP_WIDTH = int(GRID_WIDTH * MINI_MAP_SCALE)
+MINI_MAP_HEIGHT = int(GRID_HEIGHT * MINI_MAP_SCALE)
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
@@ -110,6 +113,18 @@ def draw_grid(screen, grid):
             pygame.draw.rect(screen, color, (col*CELL_SIZE, row*CELL_SIZE, CELL_SIZE, CELL_SIZE))
             pygame.draw.rect(screen, GRAY, (col*CELL_SIZE, row*CELL_SIZE, CELL_SIZE, CELL_SIZE), 1)  # Draw grid lines
 
+def draw_mini_map(screen, grid):
+    mini_map_surface = pygame.Surface((MINI_MAP_WIDTH, MINI_MAP_HEIGHT))
+    mini_map_surface.fill(WHITE)
+    mini_cell_size = MINI_MAP_WIDTH / grid.shape[1]
+    
+    for row in range(grid.shape[0]):
+        for col in range(grid.shape[1]):
+            color = BLACK if grid[row, col] == 1 else WHITE
+            pygame.draw.rect(mini_map_surface, color, (col*mini_cell_size, row*mini_cell_size, mini_cell_size, mini_cell_size))
+    
+    screen.blit(mini_map_surface, (GRID_WIDTH + 20, 10))
+
 def modify_cell(grid, pos, state):
     col = pos[0] // CELL_SIZE
     row = pos[1] // CELL_SIZE
@@ -132,7 +147,7 @@ def main():
     global CELL_SIZE, rows, cols, grid
 
     pygame.init()
-    screen = pygame.display.set_mode((GRID_WIDTH, GRID_HEIGHT + 100))
+    screen = pygame.display.set_mode((GRID_WIDTH + MINI_MAP_WIDTH + 40, GRID_HEIGHT + 100))
     pygame.display.set_caption('Conway\'s Game of Life')
     clock = pygame.time.Clock()
 
@@ -201,6 +216,7 @@ def main():
 
         screen.fill(WHITE)
         draw_grid(screen, grid)
+        draw_mini_map(screen, grid)
         start_button.draw(screen)
         pause_button.draw(screen)
         stop_button.draw(screen)
